@@ -7,14 +7,42 @@
 </head>
 
 <body>
+    <div class="game-wrapper">
+        <div class="player me"></div>
+        <div class="player opponent"></div>
+    </div>
 
 </body>
 <script src="/socket.io/socket.io.js"></script>
 <script>
     var socket = io.connect('http://localhost:3000');
+    var currentRoom = null;
+    var playerId = null;
+    var me = document.querySelector('.me'),
+        opponent = document.querySelector('.opponent');
+
     socket.on('opponent-disconnected', function (playerId) {
-        console.log('opponent disconected: ',playerId);
+        console.log('opponent disconected: ', playerId);
         socket.emit('leave-room');
+    });
+
+    socket.on('joined-to-the-room', function (room, playerId) {
+        currentRoom = room;
+        currentPlayerId = playerId;
+        console.log('joined to the room: ', room,' ',playerId);
+    });
+
+    socket.on('opponent-hit', function () {
+
+    });
+
+    document.addEventListener('keyup', function (event) {
+        if (event.keyCode == 32) {
+            if (currentRoom) {
+                socket.emit('opponent-hit');
+            }
+
+        }
     });
 </script>
 

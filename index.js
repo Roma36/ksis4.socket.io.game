@@ -1,6 +1,8 @@
-var app = require('express')(),
+var express = require('express'),
+    app = express(),
     http = require('http').Server(app),
     io = require('socket.io')(http),
+    path = require('path'),
     emitter = require('events').EventEmitter;
 
 function guid() {
@@ -26,16 +28,20 @@ var Game = function () {
     }
 
     this.addNewPlayer = function () {
-        this.players[this.players.length] = guid();
+        this.players[this.players.length] = {
+            id: guid(),
+            width: 50
+        };
+        this.io = this.io || io;
         this.room = this.room || guid();
-        return this.players[this.players.length-1];
+        return this.players[this.players.length - 1];
     }
 
     this.start = function () {
         console.log('game started ', this.players);
     }
 
-    this.finish = function (io, playerId) {
+    this.finish = function (playerId) {
         io.to(this.room).emit('opponent-disconnected', playerId);
     }
 
@@ -50,30 +56,31 @@ var games = [new Game()];
 
 
 app.get('/', function (req, res) {
-    res.sendFile(__dirname + '/index.html');
+    res.sendFile(__dirname + '/');
 });
 
 io.on('connection', function (socket) {
     var gamesCount = games.length,
         currentGame,
-        currentPlayerId;
+        currentPlayer;
     console.log(gamesCount);
     if (games[gamesCount - 1].hasSpace()) {
         currentGame = games[gamesCount - 1];
-        currentPlayerId = currentGame.addNewPlayer();
+        currentPlayer = currentGame.addNewPlayer();
         if (currentGame.isReady()) {
             currentGame.start();
         }
     } else {
         games[gamesCount] = new Game();
         currentGame = games[gamesCount];
-        currentPlayerId = currentGame.addNewPlayer();
+        currentPlayer = currentGame.addNewPlayer();
     }
 
     socket.join(currentGame.getRoom());
+    socket.emit('joined-to-the-room', currentGame.getRoom(), currentPlayer.id);
 
     socket.on('disconnect', function () {
-        currentGame.finish(io, currentPlayerId);
+        currentGame.finish(currentPlayer);
         socket.leave(currentGame.getRoom());
     });
 
@@ -82,12 +89,14 @@ io.on('connection', function (socket) {
         console.log('leaved room: ', currentPlayerId);
     })
 
-    socket.on('user_hit', function () {
-
+    socket.on('opponent-hit', function () {
+        socket.broadcast.to(currentGame.getRoom()).emit('opponent-hit');
     });
 
 });
 
-http.listen(3000, function () {
+app.use(express.static(path.join(__dirname, 'public')));
+
+http.listen(process.env.PORT || 3000, function () {
     console.log('listening on *:3000');
 });

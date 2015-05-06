@@ -12,8 +12,9 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
     var socket = io.connect('http://localhost:3000');
-    socket.on('opponentdisconnected', function () {
-        console.log('opponent disconected');
+    socket.on('opponent-disconnected', function (playerId) {
+        console.log('opponent disconected: ',playerId);
+        socket.emit('leave-room');
     });
 </script>
 

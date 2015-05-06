@@ -28,17 +28,18 @@ var Game = function () {
     this.addNewPlayer = function () {
         this.players[this.players.length] = guid();
         this.room = this.room || guid();
+        return this.players[this.players.length-1];
     }
 
     this.start = function () {
         console.log('game started ', this.players);
     }
 
-    this.finish = function(io) {
-        io.to(this.room).emit('opponentdisconnected');
+    this.finish = function (io, playerId) {
+        io.to(this.room).emit('opponent-disconnected', playerId);
     }
 
-    this.getRoom = function() {
+    this.getRoom = function () {
         return this.room;
     }
 }
@@ -54,28 +55,31 @@ app.get('/', function (req, res) {
 
 io.on('connection', function (socket) {
     var gamesCount = games.length,
-        currentGame;
+        currentGame,
+        currentPlayerId;
     console.log(gamesCount);
     if (games[gamesCount - 1].hasSpace()) {
         currentGame = games[gamesCount - 1];
-        currentGame.addNewPlayer(socket);
+        currentPlayerId = currentGame.addNewPlayer();
         if (currentGame.isReady()) {
             currentGame.start();
         }
     } else {
         games[gamesCount] = new Game();
         currentGame = games[gamesCount];
-        currentGame.addNewPlayer(socket);
+        currentPlayerId = currentGame.addNewPlayer();
     }
 
     socket.join(currentGame.getRoom());
 
     socket.on('disconnect', function () {
-        currentGame.finish(io);
+        currentGame.finish(io, currentPlayerId);
+        socket.leave(currentGame.getRoom());
     });
 
-    socket.on('opponent-disconected', function(){
-        console.log('opponents-disconnected');
+    socket.on('leave-room', function () {
+        socket.leave(currentGame.getRoom());
+        console.log('leaved room: ', currentPlayerId);
     })
 
     socket.on('user_hit', function () {

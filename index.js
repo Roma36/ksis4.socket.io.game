@@ -5,6 +5,19 @@ var express = require('express'),
     path = require('path'),
     emitter = require('events').EventEmitter;
 
+Array.prototype.remove = function () {
+    var what, a = arguments,
+        L = a.length,
+        ax;
+    while (L && this.length) {
+        what = a[--L];
+        while ((ax = this.indexOf(what)) !== -1) {
+            this.splice(ax, 1);
+        }
+    }
+    return this;
+};
+
 function guid() {
     function s4() {
         return Math.floor((1 + Math.random()) * 0x10000)
@@ -21,6 +34,10 @@ var Game = function () {
 
     this.hasSpace = function () {
         return this.players.length < 2;
+    }
+
+    this.hasPlayers = function () {
+        return this.players.length > 0;
     }
 
     this.isReady = function () {
@@ -41,8 +58,9 @@ var Game = function () {
         console.log('game started ', this.players);
     }
 
-    this.finish = function (playerId) {
-        io.to(this.room).emit('opponent-disconnected', playerId);
+    this.finish = function (player) {
+        io.to(this.room).emit('opponent-disconnected', player);
+        this.players.remove(player);
     }
 
     this.getRoom = function () {
@@ -60,6 +78,22 @@ app.get('/', function (req, res) {
 });
 
 io.on('connection', function (socket) {
+
+    function terminate() {
+        if (currentGame && currentGame.hasPlayers()) {
+            socket.leave(currentGame.getRoom());
+            currentGame.finish(currentPlayer);
+            if (!currentGame.hasPlayers()) {
+                games.remove(currentGame);
+                if (games.length === 0) {
+                    games.push(new Game());
+                }
+
+            }
+            console.log(games);
+        }
+    }
+
     var gamesCount = games.length,
         currentGame,
         currentPlayer;
@@ -80,14 +114,13 @@ io.on('connection', function (socket) {
     socket.emit('joined-to-the-room', currentGame.getRoom(), currentPlayer.id);
 
     socket.on('disconnect', function () {
-        currentGame.finish(currentPlayer);
-        socket.leave(currentGame.getRoom());
+        terminate();
     });
 
-    socket.on('leave-room', function () {
-        socket.leave(currentGame.getRoom());
-        console.log('leaved room: ', currentPlayerId);
-    })
+    socket.on('leave', function () {
+        console.log('leave');
+        terminate();
+    });
 
     socket.on('opponent-hit', function () {
         socket.broadcast.to(currentGame.getRoom()).emit('opponent-hit');

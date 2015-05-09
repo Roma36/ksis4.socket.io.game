@@ -12,14 +12,19 @@ html, body {
     margin: 0;
     width: 50%;
     height: 100%;
+
+    -webkit-transition: width .3s;
+    -moz-transition: width .3s;
+    -o-transition: width .3s;
+    transition: width .3s;
 }
 
 .me {
-    right:50%;
+    left: 0;
     background-color: #71AD5D;
 }
 
 .opponent {
-    left: 50%;
+    right: 0;
     background-color: #E05C5E;
 }

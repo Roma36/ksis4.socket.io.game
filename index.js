@@ -66,6 +66,28 @@ var Game = function () {
     this.getRoom = function () {
         return this.room;
     }
+
+    this.hit = function(hitPlayer){
+        this.players.forEach(function(player){
+            if(player===hitPlayer){
+                player.width+=1;
+            }else {
+                player.width-=1;
+            }
+        });
+
+         var playersWidths = this.players.map(function(player){
+            return player.width;
+         });
+        var looserIndex = playersWidths.indexOf(0);
+        if(looserIndex!==-1){
+            io.to(this.getRoom()).emit('game-terminate', this.players[looserIndex].id);
+        }
+    }
+
+    this.getPlayers = function() {
+        return this.players;
+    }
 }
 
 var games = [new Game()];
@@ -123,13 +145,14 @@ io.on('connection', function (socket) {
     });
 
     socket.on('opponent-hit', function () {
-        socket.broadcast.to(currentGame.getRoom()).emit('opponent-hit');
+        currentGame.hit(currentPlayer);
+        io.to(currentGame.getRoom()).emit('opponent-hit', currentGame.getPlayers());
     });
 
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-http.listen(process.env.PORT || 3000, function () {
-    console.log('listening on *:3000');
+http.listen(process.env.PORT || 8080, function () {
+    console.log('listening on *:8080');
 });

@@ -15,9 +15,9 @@
 </body>
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    var socket = io.connect('http://localhost:3000');
+    var socket = io.connect("http://"+window.location.hostname+ ":8080");
     var currentRoom = null;
-    var playerId = null;
+    var currentPlayerId = null;
     var me = document.querySelector('.me'),
         opponent = document.querySelector('.opponent');
 
@@ -32,8 +32,25 @@
         console.log('joined to the room: ', room,' ',playerId);
     });
 
-    socket.on('opponent-hit', function () {
+    socket.on('opponent-hit', function (players) {
+        var me = document.querySelector('.me');
+        var opponent = document.querySelector('.opponent');
+        players.forEach(function(player){
+            if(player.id === currentPlayerId){
+                me.style.width = player.width + '%';
+            } else {
+                opponent.style.width = player.width + '%';
+            }
+        });
+        console.log('opponent hit me',players[0].width,' ',players[1].width);
+    });
 
+    socket.on('game-terminate', function(looserId){
+        if(looserId===currentPlayerId){
+            alert('you lose');
+        }else {
+            alert('you win');
+        }
     });
 
     document.addEventListener('keyup', function (event) {
@@ -41,7 +58,6 @@
             if (currentRoom) {
                 socket.emit('opponent-hit');
             }
-
         }
     });
 </script>

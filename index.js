@@ -1,3 +1,5 @@
+'use strict'
+
 var express = require('express'),
     app = express(),
     http = require('http').Server(app),
@@ -34,15 +36,15 @@ var Game = function () {
 
     this.hasSpace = function () {
         return this.players.length < 2;
-    }
+    };
 
     this.hasPlayers = function () {
         return this.players.length > 0;
-    }
+    };
 
     this.isReady = function () {
         return this.players.length === 2;
-    }
+    };
 
     this.addNewPlayer = function () {
         this.players[this.players.length] = {
@@ -52,20 +54,21 @@ var Game = function () {
         this.io = this.io || io;
         this.room = this.room || guid();
         return this.players[this.players.length - 1];
-    }
+    };
 
     this.start = function () {
         console.log('game started ', this.players);
-    }
+        io.to(this.getRoom()).emit('game-started');
+    };
 
     this.finish = function (player) {
         io.to(this.room).emit('opponent-disconnected', player);
         this.players.remove(player);
-    }
+    };
 
     this.getRoom = function () {
         return this.room;
-    }
+    };
 
     this.hit = function(hitPlayer){
         this.players.forEach(function(player){
@@ -83,12 +86,12 @@ var Game = function () {
         if(looserIndex!==-1){
             io.to(this.getRoom()).emit('game-terminate', this.players[looserIndex].id);
         }
-    }
+    };
 
     this.getPlayers = function() {
         return this.players;
     }
-}
+};
 
 var games = [new Game()];
 
@@ -123,9 +126,6 @@ io.on('connection', function (socket) {
     if (games[gamesCount - 1].hasSpace()) {
         currentGame = games[gamesCount - 1];
         currentPlayer = currentGame.addNewPlayer();
-        if (currentGame.isReady()) {
-            currentGame.start();
-        }
     } else {
         games[gamesCount] = new Game();
         currentGame = games[gamesCount];
@@ -134,6 +134,10 @@ io.on('connection', function (socket) {
 
     socket.join(currentGame.getRoom());
     socket.emit('joined-to-the-room', currentGame.getRoom(), currentPlayer.id);
+
+    if (currentGame.isReady()) {
+        currentGame.start();
+    }
 
     socket.on('disconnect', function () {
         terminate();

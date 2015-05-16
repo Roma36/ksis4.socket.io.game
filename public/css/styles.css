@@ -1,17 +1,18 @@
 html, body {
     height: 100%;
+    margin: 0;
 }
 
 .game-wrapper {
     width: 100%;
-    height: 100%;
+    height: 90%;
 }
 
 .player {
     position: absolute;
     margin: 0;
     width: 50%;
-    height: 100%;
+    height: 90%;
 
     -webkit-transition: width .3s;
     -moz-transition: width .3s;
